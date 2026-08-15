@@ -12,11 +12,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Using standard unprivileged intents so bot connects instantly without developer portal intent restrictions
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildPresences
+    GatewayIntentBits.Guilds
   ]
 });
 
@@ -28,7 +27,7 @@ async function syncWithWebsite() {
   try {
     const payload = {
       guildCount: client.guilds.cache.size,
-      userCount: client.users.cache.size,
+      userCount: client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0),
       currentActivity: '🌸 lilacbyte.xyz • Cruel Summer',
       customStatus: 'lilacbyte.xyz connected'
     };
@@ -49,6 +48,14 @@ async function syncWithWebsite() {
     console.warn('⚠️ Could not sync with lilacbyte.xyz:', (err as Error).message);
   }
 }
+
+client.on(Events.Error, (error) => {
+  console.error('❌ Discord Client Error:', error);
+});
+
+client.on(Events.Warn, (warning) => {
+  console.warn('⚠️ Discord Client Warning:', warning);
+});
 
 client.once(Events.ClientReady, (c) => {
   console.log(`🌸 Logged in as ${c.user.tag}! Connected 24/7 via Railway.`);
@@ -150,7 +157,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         { name: '🌐 Frontend', value: 'Vercel Edge Network', inline: true },
         { name: '🔌 Connector API', value: '`https://lilacbyte.xyz/api/bot`', inline: false },
         { name: '📊 Guilds', value: `${client.guilds.cache.size}`, inline: true },
-        { name: '👥 Cached Users', value: `${client.users.cache.size}`, inline: true }
+        { name: '👥 Cached Users', value: `${client.guilds.cache.reduce((acc, g) => acc + g.memberCount, 0)}`, inline: true }
       )
       .setFooter({ text: 'lilacbyte.xyz' });
 
@@ -161,7 +168,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
 const token = process.env.DISCORD_TOKEN;
 
 if (!token) {
-  console.log('🌸 Tip: Set DISCORD_TOKEN in Railway environment variables to start the bot.');
+  console.error('❌ DISCORD_TOKEN environment variable is not set in Railway!');
+  console.error('👉 Go to your Railway project > lilacbyte-bot service > Variables > Add DISCORD_TOKEN');
 } else {
-  client.login(token);
+  console.log('🌸 Connecting to Discord Gateway...');
+  client.login(token).catch((err) => {
+    console.error('❌ Failed to login to Discord:', err);
+  });
 }
