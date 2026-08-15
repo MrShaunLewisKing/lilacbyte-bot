@@ -13,13 +13,26 @@ import {
   Routes,
   SlashCommandBuilder,
   InteractionContextType,
-  ApplicationIntegrationType
+  ApplicationIntegrationType,
+  ButtonInteraction,
+  ChatInputCommandInteraction
 } from 'discord.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// 1. Client Configuration with DM support & Partials
+// Whitelisted User ID (Only Lilac can interact)
+const AUTHORIZED_USER_ID = '622858248587837481';
+const LILAC_AVATAR_URL = 'https://cdn.discordapp.com/avatars/622858248587837481/a_ca1e23ad2e95a12269c6ba7d1000bb7d.png?size=512';
+
+// Hosted Character CDN Images on lilacbyte.xyz
+const CHARACTER_IMAGES = [
+  'https://lilacbyte.xyz/character/1.jpg',
+  'https://lilacbyte.xyz/character/2.jpg',
+  'https://lilacbyte.xyz/character/3.jpg',
+  'https://lilacbyte.xyz/character/4.jpg'
+];
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -43,69 +56,114 @@ const client = new Client({
     VoiceStateManager: 0,
     GuildScheduledEventManager: 0,
     AutoModerationRuleManager: 0
-  }),
-  sweepers: {
-    ...Options.DefaultSweeperSettings,
-    messages: {
-      interval: 300,
-      lifetime: 60
-    }
-  }
+  })
 });
 
 const LILAC_API_URL = process.env.LILAC_API_URL || 'https://lilacbyte.xyz/api/bot';
 const LILAC_BOT_SECRET = process.env.LILAC_BOT_SECRET || '';
 
-// 2. Pre-computed static response components
-const profileEmbed = new EmbedBuilder()
-  .setColor(0xf472b6)
-  .setTitle('♡₊˚ Lilac .ᐟ 🌸')
-  .setURL('https://lilacbyte.xyz')
-  .setDescription('Welcome to Lilac\'s official Carrd-style interactive space!')
-  .setThumbnail('https://cdn.discordapp.com/avatars/622858248587837481/a_ca1e23ad2e95a12269c6ba7d1000bb7d.png?size=512')
-  .addFields(
-    { name: '🎂 Age', value: '22', inline: true },
-    { name: '📍 Location', value: 'United Kingdom', inline: true },
-    { name: '🌸 Gender', value: 'Female (Femboy)', inline: true },
-    { name: '🏷️ Pronouns', value: 'she/her', inline: true },
-    { name: '✨ Nicknames', value: 'Lilac, Lily, Lili', inline: true },
-    { name: '🎵 Now Playing', value: 'Cruel Summer by Taylor Swift', inline: false }
-  )
-  .setFooter({
-    text: 'created with love by lilac. • lilacbyte.xyz',
-    iconURL: 'https://cdn.discordapp.com/avatars/622858248587837481/a_ca1e23ad2e95a12269c6ba7d1000bb7d.png?size=128'
-  });
-
-const profileButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-  new ButtonBuilder()
-    .setLabel('Visit lilacbyte.xyz 🌸')
-    .setStyle(ButtonStyle.Link)
-    .setURL('https://lilacbyte.xyz'),
-  new ButtonBuilder()
-    .setLabel('Listen to Playlist 🎵')
-    .setStyle(ButtonStyle.Link)
-    .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
-);
-
-const musicEmbed = new EmbedBuilder()
-  .setColor(0xf472b6)
-  .setTitle('🎵 Currently Playing on lilacbyte.xyz')
-  .setDescription('**Taylor Swift — Cruel Summer**\n*Continuous playlist streaming enabled with exact timestamp restoration.*')
-  .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
-  .addFields(
-    { name: '🔊 Audio Engine', value: 'Client-Side YouTube Iframe API', inline: true },
-    { name: '🔁 Loop Mode', value: 'Infinite Playlist Queue', inline: true }
-  )
-  .setFooter({ text: 'lilacbyte.xyz' });
-
-const musicButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-  new ButtonBuilder()
-    .setLabel('Open Music Player 🌸')
-    .setStyle(ButtonStyle.Link)
+// 1. Profile Embed Generator (With PFP in top-right thumbnail)
+function buildProfileResponse() {
+  const embed = new EmbedBuilder()
+    .setColor(0xf472b6)
+    .setTitle('♡₊˚ Lilac .ᐟ 🌸')
     .setURL('https://lilacbyte.xyz')
-);
+    .setDescription('Personal intro card & digital space.')
+    .setThumbnail(LILAC_AVATAR_URL)
+    .addFields(
+      { name: '🎂 Age', value: '22', inline: true },
+      { name: '📍 From', value: 'United Kingdom', inline: true },
+      { name: '🌸 Gender', value: 'Female (Femboy)', inline: true },
+      { name: '🏷️ Pronouns', value: 'she/her', inline: true },
+      { name: '✨ Nicknames', value: 'Lilac, Lily, Lili', inline: true },
+      { name: '🎵 Now Playing', value: 'Cruel Summer by Taylor Swift', inline: false }
+    )
+    .setFooter({
+      text: 'created with love by lilac. • lilacbyte.xyz',
+      iconURL: LILAC_AVATAR_URL
+    });
 
-// 3. Fast non-blocking website telemetry sync
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId('char_0')
+      .setLabel('Character 🌸')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+      .setLabel('Website 🌐')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://lilacbyte.xyz'),
+    new ButtonBuilder()
+      .setLabel('Music 🎵')
+      .setStyle(ButtonStyle.Link)
+      .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
+  );
+
+  return { embeds: [embed], components: [row] };
+}
+
+// 2. Character Image Gallery Builder (With prev/next arrows)
+function buildCharacterResponse(index: number) {
+  const total = CHARACTER_IMAGES.length;
+  const safeIndex = Math.max(0, Math.min(index, total - 1));
+  const imageUrl = CHARACTER_IMAGES[safeIndex];
+
+  const embed = new EmbedBuilder()
+    .setColor(0xf472b6)
+    .setTitle(`Lilac — Character Art (${safeIndex + 1}/${total}) 🌸`)
+    .setURL('https://lilacbyte.xyz')
+    .setThumbnail(LILAC_AVATAR_URL)
+    .setImage(imageUrl)
+    .setFooter({
+      text: `Image ${safeIndex + 1} of ${total} • Hosted on lilacbyte.xyz CDN`,
+      iconURL: LILAC_AVATAR_URL
+    });
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`char_prev_${safeIndex - 1}`)
+      .setLabel('⬅️ Previous')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(safeIndex === 0),
+    new ButtonBuilder()
+      .setCustomId('char_counter')
+      .setLabel(`${safeIndex + 1} / ${total}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true),
+    new ButtonBuilder()
+      .setCustomId(`char_next_${safeIndex + 1}`)
+      .setLabel('Next ➡️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(safeIndex === total - 1),
+    new ButtonBuilder()
+      .setCustomId('back_profile')
+      .setLabel('Profile 🌸')
+      .setStyle(ButtonStyle.Success)
+  );
+
+  return { embeds: [embed], components: [row] };
+}
+
+// 3. Ping Embed Generator (With PFP in top-right thumbnail)
+function buildPingResponse(gatewayPing: number, latency: number) {
+  const embed = new EmbedBuilder()
+    .setColor(0xf472b6)
+    .setTitle('🏓 Pong!')
+    .setThumbnail(LILAC_AVATAR_URL)
+    .addFields(
+      { name: '⚡ Bot Latency', value: `\`${latency}ms\``, inline: true },
+      { name: '🌐 Gateway Ping', value: `\`${Math.round(gatewayPing)}ms\``, inline: true },
+      { name: '🌸 Status', value: 'Operational', inline: true },
+      { name: '🔗 Website', value: '[lilacbyte.xyz](https://lilacbyte.xyz)', inline: false }
+    )
+    .setFooter({
+      text: 'lilacbyte.xyz bot',
+      iconURL: LILAC_AVATAR_URL
+    });
+
+  return { embeds: [embed] };
+}
+
+// Fast non-blocking website sync
 async function syncWithWebsite() {
   try {
     const payload = {
@@ -126,7 +184,7 @@ async function syncWithWebsite() {
   } catch {}
 }
 
-// 4. Register slash commands enabled in Guilds, DMs, and User-Installed Contexts
+// Auto Slash Command Registration
 async function autoRegisterCommands(clientId: string, token: string) {
   const createSlash = (name: string, description: string) =>
     new SlashCommandBuilder()
@@ -144,24 +202,23 @@ async function autoRegisterCommands(clientId: string, token: string) {
       .toJSON();
 
   const commands = [
-    createSlash('profile', '🌸 View Lilac\'s official Carrd profile & intro card'),
-    createSlash('card', '🌸 Display Lilac\'s interactive website card'),
-    createSlash('music', '🎵 See the currently playing track on lilacbyte.xyz'),
-    createSlash('ping', '🏓 Check bot latency and lilacbyte.xyz API health'),
-    createSlash('status', '✨ View live connection telemetry between Railway and lilacbyte.xyz')
+    createSlash('profile', '🌸 View Lilac\'s official profile & character art'),
+    createSlash('character', '🖼️ View Lilac\'s full-body character art gallery'),
+    createSlash('ping', '🏓 Check bot latency and API health'),
+    createSlash('music', '🎵 See the currently playing track on lilacbyte.xyz')
   ];
 
   try {
     const rest = new REST({ version: '10' }).setToken(token);
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
-    console.log('⚡ Registered (/) commands for Guilds, DMs & User Installs.');
+    console.log('⚡ Registered (/) commands.');
   } catch (err) {
-    console.warn('⚠️ Slash command registration notice:', (err as Error).message);
+    console.warn('⚠️ Command registration notice:', (err as Error).message);
   }
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Rapid 24/7 Gateway active (Guilds & DMs).`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Ready for Lilac (${AUTHORIZED_USER_ID}).`);
 
   c.user.setPresence({
     activities: [
@@ -183,65 +240,95 @@ client.once(Events.ClientReady, async (c) => {
   setInterval(syncWithWebsite, 60000);
 });
 
-// 5. Slash Interaction Handler (Handles both Guild & DM interactions)
+// Interaction Handler with User Whitelist Check
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const { commandName } = interaction;
-  const isDM = !interaction.inGuild();
-
-  if (commandName === 'ping') {
-    return interaction.reply({
-      content: `🌸 **Pong!**\n⚡ **Gateway Latency:** \`${Math.round(client.ws.ping)}ms\`\n📍 **Context:** ${isDM ? 'Direct Message (DM) 💌' : 'Server Guild 🏰'}\n🌐 **Website:** [lilacbyte.xyz](https://lilacbyte.xyz)`,
-      ephemeral: false
-    });
+  // Check authorization: only user 622858248587837481 can interact
+  if (interaction.user.id !== AUTHORIZED_USER_ID) {
+    if (interaction.isRepliable()) {
+      return interaction.reply({
+        content: '🌸 Only Lilac (<@622858248587837481>) can interact with this bot right now.',
+        ephemeral: true
+      });
+    }
+    return;
   }
 
-  if (commandName === 'profile' || commandName === 'card') {
-    return interaction.reply({
-      embeds: [profileEmbed],
-      components: [profileButtons]
-    });
+  // Handle Slash Commands
+  if (interaction.isChatInputCommand()) {
+    const cmd = interaction as ChatInputCommandInteraction;
+    const { commandName } = cmd;
+
+    if (commandName === 'profile') {
+      return cmd.reply(buildProfileResponse());
+    }
+
+    if (commandName === 'character') {
+      return cmd.reply(buildCharacterResponse(0));
+    }
+
+    if (commandName === 'ping') {
+      const sent = await cmd.reply({ content: '🏓 Pinging...', fetchReply: true });
+      const latency = sent.createdTimestamp - cmd.createdTimestamp;
+      return cmd.editReply(buildPingResponse(client.ws.ping, latency));
+    }
+
+    if (commandName === 'music') {
+      const embed = new EmbedBuilder()
+        .setColor(0xf472b6)
+        .setTitle('🎵 Currently Playing on lilacbyte.xyz')
+        .setDescription('**Taylor Swift — Cruel Summer**\n*Continuous playlist streaming enabled with exact timestamp restoration.*')
+        .setThumbnail(LILAC_AVATAR_URL)
+        .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
+        .setFooter({ text: 'lilacbyte.xyz' });
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel('Open Music Player 🌸')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://lilacbyte.xyz')
+      );
+
+      return cmd.reply({ embeds: [embed], components: [row] });
+    }
   }
 
-  if (commandName === 'music') {
-    return interaction.reply({
-      embeds: [musicEmbed],
-      components: [musicButtons]
-    });
-  }
+  // Handle Button Clicks (Character Gallery & Back to Profile)
+  if (interaction.isButton()) {
+    const btn = interaction as ButtonInteraction;
+    const { customId } = btn;
 
-  if (commandName === 'status') {
-    const statusEmbed = new EmbedBuilder()
-      .setColor(0x23a55a)
-      .setTitle('✨ lilacbyte.xyz Telemetry & Status')
-      .addFields(
-        { name: '🤖 Bot Status', value: '🟢 Online 24/7 via Railway', inline: true },
-        { name: '🌐 Frontend', value: 'Vercel Edge Network', inline: true },
-        { name: '⚡ Gateway Ping', value: `\`${Math.round(client.ws.ping)}ms\``, inline: true },
-        { name: '💌 DM Commands', value: '✅ Supported Anywhere', inline: true },
-        { name: '🔌 Connector API', value: '`https://lilacbyte.xyz/api/bot`', inline: false },
-        { name: '📊 Guilds', value: `${client.guilds.cache.size}`, inline: true }
-      )
-      .setFooter({ text: 'lilacbyte.xyz' });
+    if (customId === 'char_0') {
+      return btn.update(buildCharacterResponse(0));
+    }
 
-    return interaction.reply({ embeds: [statusEmbed] });
+    if (customId.startsWith('char_prev_')) {
+      const idx = parseInt(customId.replace('char_prev_', ''), 10);
+      return btn.update(buildCharacterResponse(isNaN(idx) ? 0 : idx));
+    }
+
+    if (customId.startsWith('char_next_')) {
+      const idx = parseInt(customId.replace('char_next_', ''), 10);
+      return btn.update(buildCharacterResponse(isNaN(idx) ? 0 : idx));
+    }
+
+    if (customId === 'back_profile') {
+      return btn.update(buildProfileResponse());
+    }
   }
 });
 
-// 6. Direct Message Auto-Responder (When users send a direct text message to the bot)
+// DM Auto-Responder (Only for Lilac)
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
-  // If received in DMs
   if (!message.guild) {
-    try {
-      await message.reply({
-        content: `Hi **${message.author.username}**! 🌸 I'm Lilac's official assistant bot.\n\nYou can use slash commands like </profile:0> or </music:0> right here in DMs!`,
-        embeds: [profileEmbed],
-        components: [profileButtons]
+    if (message.author.id !== AUTHORIZED_USER_ID) {
+      return message.reply({
+        content: '🌸 Only Lilac can message this bot right now.'
       });
-    } catch {}
+    }
+
+    return message.reply(buildProfileResponse());
   }
 });
 
