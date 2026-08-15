@@ -1,6 +1,7 @@
 import {
   Client,
   GatewayIntentBits,
+  Partials,
   ActivityType,
   EmbedBuilder,
   ActionRowBuilder,
@@ -10,22 +11,32 @@ import {
   Options,
   REST,
   Routes,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  InteractionContextType,
+  ApplicationIntegrationType
 } from 'discord.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// 1. Ultra-Low Memory & High-Speed Discord Client Configuration
+// 1. Client Configuration with DM support & Partials
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.DirectMessages
+  ],
+  partials: [
+    Partials.Channel,
+    Partials.Message,
+    Partials.User
+  ],
   makeCache: Options.cacheWithLimits({
-    MessageManager: 0,
+    MessageManager: 10,
     PresenceManager: 0,
     ReactionManager: 0,
     ReactionUserManager: 0,
     GuildMemberManager: 10,
-    UserManager: 10,
+    UserManager: 20,
     ThreadManager: 0,
     ThreadMemberManager: 0,
     StageInstanceManager: 0,
@@ -45,7 +56,7 @@ const client = new Client({
 const LILAC_API_URL = process.env.LILAC_API_URL || 'https://lilacbyte.xyz/api/bot';
 const LILAC_BOT_SECRET = process.env.LILAC_BOT_SECRET || '';
 
-// 2. Pre-computed static response components for sub-millisecond slash command replies
+// 2. Pre-computed static response components
 const profileEmbed = new EmbedBuilder()
   .setColor(0xf472b6)
   .setTitle('♡₊˚ Lilac .ᐟ 🌸')
@@ -115,29 +126,43 @@ async function syncWithWebsite() {
   } catch {}
 }
 
-// 4. Automatic Slash Command Registration on Boot
+// 4. Register slash commands enabled in Guilds, DMs, and User-Installed Contexts
 async function autoRegisterCommands(clientId: string, token: string) {
+  const createSlash = (name: string, description: string) =>
+    new SlashCommandBuilder()
+      .setName(name)
+      .setDescription(description)
+      .setContexts([
+        InteractionContextType.Guild,
+        InteractionContextType.BotDM,
+        InteractionContextType.PrivateChannel
+      ])
+      .setIntegrationTypes([
+        ApplicationIntegrationType.GuildInstall,
+        ApplicationIntegrationType.UserInstall
+      ])
+      .toJSON();
+
   const commands = [
-    new SlashCommandBuilder().setName('profile').setDescription('🌸 View Lilac\'s official Carrd profile & intro card'),
-    new SlashCommandBuilder().setName('card').setDescription('🌸 Display Lilac\'s interactive website card'),
-    new SlashCommandBuilder().setName('music').setDescription('🎵 See the currently playing track on lilacbyte.xyz'),
-    new SlashCommandBuilder().setName('ping').setDescription('🏓 Check bot latency and lilacbyte.xyz API health'),
-    new SlashCommandBuilder().setName('status').setDescription('✨ View live connection telemetry between Railway and lilacbyte.xyz')
-  ].map(c => c.toJSON());
+    createSlash('profile', '🌸 View Lilac\'s official Carrd profile & intro card'),
+    createSlash('card', '🌸 Display Lilac\'s interactive website card'),
+    createSlash('music', '🎵 See the currently playing track on lilacbyte.xyz'),
+    createSlash('ping', '🏓 Check bot latency and lilacbyte.xyz API health'),
+    createSlash('status', '✨ View live connection telemetry between Railway and lilacbyte.xyz')
+  ];
 
   try {
     const rest = new REST({ version: '10' }).setToken(token);
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
-    console.log('⚡ Fast-registered (/) commands with Discord API.');
+    console.log('⚡ Registered (/) commands for Guilds, DMs & User Installs.');
   } catch (err) {
     console.warn('⚠️ Slash command registration notice:', (err as Error).message);
   }
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Rapid 24/7 Gateway active.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Rapid 24/7 Gateway active (Guilds & DMs).`);
 
-  // Set rich custom presence
   c.user.setPresence({
     activities: [
       {
@@ -149,7 +174,6 @@ client.once(Events.ClientReady, async (c) => {
     status: 'online'
   });
 
-  // Auto-sync & auto-register slash commands
   const token = process.env.DISCORD_TOKEN;
   if (token) {
     autoRegisterCommands(c.user.id, token);
@@ -159,15 +183,16 @@ client.once(Events.ClientReady, async (c) => {
   setInterval(syncWithWebsite, 60000);
 });
 
-// 5. Zero-Latency Interaction Handler
+// 5. Slash Interaction Handler (Handles both Guild & DM interactions)
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName } = interaction;
+  const isDM = !interaction.inGuild();
 
   if (commandName === 'ping') {
     return interaction.reply({
-      content: `🌸 **Pong!**\n⚡ **Gateway Latency:** \`${Math.round(client.ws.ping)}ms\`\n🌐 **Website:** [lilacbyte.xyz](https://lilacbyte.xyz)`,
+      content: `🌸 **Pong!**\n⚡ **Gateway Latency:** \`${Math.round(client.ws.ping)}ms\`\n📍 **Context:** ${isDM ? 'Direct Message (DM) 💌' : 'Server Guild 🏰'}\n🌐 **Website:** [lilacbyte.xyz](https://lilacbyte.xyz)`,
       ephemeral: false
     });
   }
@@ -194,13 +219,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
         { name: '🤖 Bot Status', value: '🟢 Online 24/7 via Railway', inline: true },
         { name: '🌐 Frontend', value: 'Vercel Edge Network', inline: true },
         { name: '⚡ Gateway Ping', value: `\`${Math.round(client.ws.ping)}ms\``, inline: true },
+        { name: '💌 DM Commands', value: '✅ Supported Anywhere', inline: true },
         { name: '🔌 Connector API', value: '`https://lilacbyte.xyz/api/bot`', inline: false },
-        { name: '📊 Guilds', value: `${client.guilds.cache.size}`, inline: true },
-        { name: '👥 Cached Members', value: `${client.guilds.cache.reduce((acc, g) => acc + (g.memberCount || 1), 0)}`, inline: true }
+        { name: '📊 Guilds', value: `${client.guilds.cache.size}`, inline: true }
       )
       .setFooter({ text: 'lilacbyte.xyz' });
 
     return interaction.reply({ embeds: [statusEmbed] });
+  }
+});
+
+// 6. Direct Message Auto-Responder (When users send a direct text message to the bot)
+client.on(Events.MessageCreate, async (message) => {
+  if (message.author.bot) return;
+
+  // If received in DMs
+  if (!message.guild) {
+    try {
+      await message.reply({
+        content: `Hi **${message.author.username}**! 🌸 I'm Lilac's official assistant bot.\n\nYou can use slash commands like </profile:0> or </music:0> right here in DMs!`,
+        embeds: [profileEmbed],
+        components: [profileButtons]
+      });
+    } catch {}
   }
 });
 
