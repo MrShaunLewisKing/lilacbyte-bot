@@ -119,7 +119,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card with Roleplaying Subcategory
+// 1. Clean Profile Card with Discord Markdown Formatting
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -129,17 +129,17 @@ async function buildProfileResponse() {
     .setURL('https://lilacbyte.xyz')
     .setThumbnail(media.avatarURL)
     .setDescription(
-      `• **Age** ﹕ 22\n` +
-      `• **From** ﹕ United Kingdom\n` +
-      `• **Gender** ﹕ Female (Femboy)\n` +
-      `• **Pronouns** ﹕ she/her\n` +
-      `• **Nicknames** ﹕ Lilac, Lily, Lili\n` +
-      `• **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
-      `• **Dislikes** ﹕ Loud noises, cold coffee, drama\n\n` +
-      `**Roleplaying**\n` +
-      `• **Position** ﹕ Switch (Submissive Lean)\n` +
-      `• **Kinks** ﹕ Rough-fucking, Breeding, Petplay + more\n` +
-      `• **Plots** ﹕ Prefers to be flexible & outside plots`
+      `- **Age** ﹕ 22\n` +
+      `- **From** ﹕ United Kingdom\n` +
+      `- **Gender** ﹕ Female (Femboy)\n` +
+      `- **Pronouns** ﹕ she/her\n` +
+      `- **Nicknames** ﹕ Lilac, Lily, Lili\n` +
+      `- **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
+      `- **Dislikes** ﹕ Loud noises, cold coffee, drama\n\n` +
+      `### Roleplaying\n` +
+      `- **Position** ﹕ Switch (Submissive Lean)\n` +
+      `- **Kinks** ﹕ Rough, Breeding, Petplay + more\n` +
+      `- **Plots** ﹕ Flexible & open to ideas`
     )
     .setImage(media.bannerURL)
     .setFooter({
@@ -205,9 +205,9 @@ async function buildPingResponse(gatewayPing: number, latency: number) {
     .setTitle('🏓 Pong!')
     .setThumbnail(media.avatarURL)
     .setDescription(
-      `• **Latency** ﹕ \`${latency}ms\`\n` +
-      `• **Gateway** ﹕ \`${Math.round(gatewayPing)}ms\`\n` +
-      `• **Website** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
+      `- **Latency** ﹕ \`${latency}ms\`\n` +
+      `- **Gateway** ﹕ \`${Math.round(gatewayPing)}ms\`\n` +
+      `- **Website** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
     );
 
   return { embeds: [embed] };
@@ -267,7 +267,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Roleplaying Subcategory Active.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Clean Discord Markdown Formatting Active.`);
 
   c.user.setPresence({
     activities: [
@@ -315,7 +315,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 
-  // Button Interactions
+  // Button Interactions (Character Images & Arrows)
   if (interaction.isButton()) {
     const btn = interaction as ButtonInteraction;
     const { customId } = btn;
