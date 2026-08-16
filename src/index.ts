@@ -23,7 +23,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const AUTHORIZED_USER_ID = '622858248587837481';
+const LILAC_USER_ID = '622858248587837481';
 
 // Character Outfits & Styles
 const CHARACTER_OUTFITS = [
@@ -74,7 +74,7 @@ const client = new Client({
 const LILAC_API_URL = process.env.LILAC_API_URL || 'https://lilacbyte.xyz/api/bot';
 const LILAC_BOT_SECRET = process.env.LILAC_BOT_SECRET || '';
 
-// Live Media Cache
+// Live Media Cache for Lilac
 let userMediaCache = {
   avatarURL: 'https://cdn.discordapp.com/avatars/622858248587837481/fe4a9783f89ee5f27539a78675f0bb2c.png?size=512',
   bannerURL: 'https://cdn.discordapp.com/banners/622858248587837481/059d31c98c90366335465ee69b8d1b39.png?size=1024',
@@ -89,7 +89,7 @@ async function getLiveUserMedia() {
   }
 
   try {
-    const user = await client.users.fetch(AUTHORIZED_USER_ID, { force: true });
+    const user = await client.users.fetch(LILAC_USER_ID, { force: true });
     if (user) {
       userMediaCache = {
         avatarURL: user.displayAvatarURL({ size: 512, forceStatic: false }),
@@ -102,7 +102,7 @@ async function getLiveUserMedia() {
   } catch {}
 
   try {
-    const res = await fetch(`https://japi.rest/discord/v1/user/${AUTHORIZED_USER_ID}`);
+    const res = await fetch(`https://japi.rest/discord/v1/user/${LILAC_USER_ID}`);
     if (res.ok) {
       const json = await res.json();
       if (json?.data) {
@@ -119,7 +119,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Compact Profile Card (No extra gaps, seamless spacing)
+// 1. Clean Profile Card
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -156,7 +156,7 @@ async function buildProfileResponse() {
   return { embeds: [embed], components: [row], files: [] };
 }
 
-// 2. Full-Res Native Attachment Character Gallery
+// 2. Full-Res Character Gallery (Title includes: tap for full image)
 function buildCharacterResponse(index: number) {
   const total = CHARACTER_OUTFITS.length;
   const safeIndex = Math.max(0, Math.min(index, total - 1));
@@ -167,7 +167,7 @@ function buildCharacterResponse(index: number) {
 
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setTitle(outfit.title)
+    .setTitle(`${outfit.title} — tap for full image`)
     .setImage(`attachment://${outfit.file}`);
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -266,7 +266,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Clean Profile Ready.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Open interactions active for all users.`);
 
   c.user.setPresence({
     activities: [
@@ -289,18 +289,8 @@ client.once(Events.ClientReady, async (c) => {
   setInterval(syncWithWebsite, 60000);
 });
 
-// Interaction Handler with Whitelist
+// Interaction Handler (Open for Lilac and other users to interact with buttons & commands)
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (interaction.user.id !== AUTHORIZED_USER_ID) {
-    if (interaction.isRepliable()) {
-      return interaction.reply({
-        content: '🌸 Only Lilac (<@622858248587837481>) can interact with this bot right now.',
-        ephemeral: true
-      });
-    }
-    return;
-  }
-
   // Slash Commands
   if (interaction.isChatInputCommand()) {
     const cmd = interaction as ChatInputCommandInteraction;
@@ -324,7 +314,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 
-  // Button Interactions
+  // Button Interactions (Character Images & Arrows)
   if (interaction.isButton()) {
     const btn = interaction as ButtonInteraction;
     const { customId } = btn;
@@ -353,17 +343,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// DM Auto-Responder (Only for Lilac)
+// DM Auto-Responder (Open for everyone in DMs)
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
   if (!message.guild) {
-    if (message.author.id !== AUTHORIZED_USER_ID) {
-      return message.reply({
-        content: '🌸 Only Lilac can message this bot right now.'
-      });
-    }
-
     const res = await buildProfileResponse();
     return message.reply(res);
   }
