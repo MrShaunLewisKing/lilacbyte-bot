@@ -24,7 +24,26 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const AUTHORIZED_USER_ID = '622858248587837481';
-const TOTAL_CHARACTER_IMAGES = 4;
+
+// Character Outfits & Styles
+const CHARACTER_OUTFITS = [
+  {
+    title: 'Tracksuit',
+    file: 'character_1.jpg'
+  },
+  {
+    title: 'Sweater & Skirt',
+    file: 'character_2.jpg'
+  },
+  {
+    title: 'Bodysuit',
+    file: 'character_3.jpg'
+  },
+  {
+    title: 'Turtleneck & Boots',
+    file: 'character_4.jpg'
+  }
+];
 
 const client = new Client({
   intents: [
@@ -100,7 +119,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card with Roleplay Info
+// 1. Clean Profile Card
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -130,25 +149,26 @@ async function buildProfileResponse() {
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('char_0')
-      .setLabel('Character 🌸')
+      .setLabel('Character Images')
       .setStyle(ButtonStyle.Primary)
   );
 
   return { embeds: [embed], components: [row], files: [] };
 }
 
-// 2. Full-Res Native Attachment Character Gallery
+// 2. Character Gallery with Individual Style Titles (Tracksuit default)
 function buildCharacterResponse(index: number) {
-  const safeIndex = Math.max(0, Math.min(index, TOTAL_CHARACTER_IMAGES - 1));
-  const imageNumber = safeIndex + 1;
-  const fileName = `character_${imageNumber}.jpg`;
-  const filePath = path.resolve(process.cwd(), `assets/${fileName}`);
+  const total = CHARACTER_OUTFITS.length;
+  const safeIndex = Math.max(0, Math.min(index, total - 1));
+  const outfit = CHARACTER_OUTFITS[safeIndex];
+  const filePath = path.resolve(process.cwd(), `assets/${outfit.file}`);
 
-  const attachment = new AttachmentBuilder(filePath, { name: fileName });
+  const attachment = new AttachmentBuilder(filePath, { name: outfit.file });
 
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setImage(`attachment://${fileName}`);
+    .setTitle(outfit.title)
+    .setImage(`attachment://${outfit.file}`);
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -158,17 +178,17 @@ function buildCharacterResponse(index: number) {
       .setDisabled(safeIndex === 0),
     new ButtonBuilder()
       .setCustomId('char_counter')
-      .setLabel(`${safeIndex + 1} / ${TOTAL_CHARACTER_IMAGES}`)
+      .setLabel(`${safeIndex + 1} / ${total}`)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
     new ButtonBuilder()
       .setCustomId(`char_next_${safeIndex + 1}`)
       .setLabel('➡️')
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(safeIndex === TOTAL_CHARACTER_IMAGES - 1),
+      .setDisabled(safeIndex === total - 1),
     new ButtonBuilder()
       .setCustomId('back_profile')
-      .setLabel('Profile 🌸')
+      .setLabel('Profile')
       .setStyle(ButtonStyle.Primary)
   );
 
@@ -246,7 +266,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Clean Profile Ready.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Character Images Ready.`);
 
   c.user.setPresence({
     activities: [
