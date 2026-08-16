@@ -118,7 +118,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card
+// 1. Clean Profile Card with ## Roleplaying
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -135,7 +135,7 @@ async function buildProfileResponse() {
       `- **Nicknames** ﹕ Lilac, Lily, Lili\n` +
       `- **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
       `- **Dislikes** ﹕ Loud noises, cold coffee, drama\n` +
-      `**Roleplaying**\n` +
+      `## Roleplaying\n` +
       `- **Position** ﹕ Switch (Submissive Lean)\n` +
       `- **Kinks** ﹕ Rough, Breeding, Petplay + more\n` +
       `- **Plots** ﹕ Flexible & open to ideas`
@@ -266,9 +266,8 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Bot online with clean presence (no custom status text).`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Roleplaying header active.`);
 
-  // Simple online status with zero custom activity/status text
   c.user.setPresence({
     activities: [],
     status: 'online'
