@@ -23,12 +23,28 @@ dotenv.config();
 
 const AUTHORIZED_USER_ID = '622858248587837481';
 
-// Hosted Character CDN Images on lilacbyte.xyz
-const CHARACTER_IMAGES = [
-  'https://lilacbyte.xyz/character/1.jpg',
-  'https://lilacbyte.xyz/character/2.jpg',
-  'https://lilacbyte.xyz/character/3.jpg',
-  'https://lilacbyte.xyz/character/4.jpg'
+// Character Art Outfits hosted on lilacbyte.xyz CDN
+const CHARACTER_OUTFITS = [
+  {
+    name: 'Cozy Hoodie & Sweats',
+    url: 'https://lilacbyte.xyz/character/1.jpg',
+    desc: 'Oversized pastel pink hoodie with matching sweatpants and pink sneakers.'
+  },
+  {
+    name: 'Off-Shoulder Knit & Skirt',
+    url: 'https://lilacbyte.xyz/character/2.jpg',
+    desc: 'Soft off-the-shoulder pink sweater, white pleated mini skirt, and thigh-high socks.'
+  },
+  {
+    name: 'Pastel Bodysuit',
+    url: 'https://lilacbyte.xyz/character/3.jpg',
+    desc: 'Sleek form-fitting zip jumpsuit in signature sakura pink.'
+  },
+  {
+    name: 'Chunky Turtleneck & Boots',
+    url: 'https://lilacbyte.xyz/character/4.jpg',
+    desc: 'Warm chunky cable-knit turtleneck sweater, pleated skirt, and glossy pink boots.'
+  }
 ];
 
 const client = new Client({
@@ -60,7 +76,7 @@ const client = new Client({
 const LILAC_API_URL = process.env.LILAC_API_URL || 'https://lilacbyte.xyz/api/bot';
 const LILAC_BOT_SECRET = process.env.LILAC_BOT_SECRET || '';
 
-// In-memory cache for live user avatar and banner
+// Live Media Cache
 let userMediaCache = {
   avatarURL: 'https://cdn.discordapp.com/avatars/622858248587837481/fe4a9783f89ee5f27539a78675f0bb2c.png?size=512',
   bannerURL: 'https://cdn.discordapp.com/banners/622858248587837481/059d31c98c90366335465ee69b8d1b39.png?size=1024',
@@ -105,7 +121,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Tidy, Aesthetic Roleplay Profile Card
+// 1. RP Character Profile Card Builder
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -115,38 +131,40 @@ async function buildProfileResponse() {
     .setURL('https://lilacbyte.xyz')
     .setDescription(
       `*“Simplicity is the keynote of all true elegance.”*\n\n` +
-      `> **✦ Identity & Info**\n` +
-      `• **Age** ﹕ \`22\`\n` +
-      `• **From** ﹕ \`United Kingdom\`\n` +
-      `• **Gender** ﹕ \`Female (Femboy)\`\n` +
-      `• **Pronouns** ﹕ \`she / her\`\n` +
-      `• **Aliases** ﹕ \`Lilac\`, \`Lily\`, \`Lili\`\n\n` +
-      `> **✦ Preferences**\n` +
-      `• **Likes** ﹕ Pastel Aesthetics, Iced Matcha, Cute Plushies, Rainy Days\n` +
-      `• **Dislikes** ﹕ Loud Noises, Cold Coffee, Toxicity, Slow Internet\n` +
-      `• **Hobbies** ﹕ Cozy Gaming, Digital Art & UI, Lo-Fi Beats, Web Crafting\n\n` +
-      `> **✦ Media & Links**\n` +
-      `• **Now Playing** ﹕ [Cruel Summer — Taylor Swift](https://music.youtube.com/watch?v=ic8j13piAhQ)\n` +
-      `• **Interactive Card** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
+      `╭── ✦ **Character Profile & Lore** ──╮\n` +
+      `**Name** ﹕ Lilac (Lily / Lili)\n` +
+      `**Age** ﹕ 22\n` +
+      `**Gender** ﹕ Female (Femboy)\n` +
+      `**Pronouns** ﹕ she / her\n` +
+      `**Origin** ﹕ United Kingdom 🇬🇧\n` +
+      `**Appearance** ﹕ Long wavy pastel-pink hair, soft pink eyes, cozy aesthetic\n` +
+      `**Personality** ﹕ Sweet, gentle, creative, cozy, quiet\n` +
+      `╰────────────────────────╯\n\n` +
+      `╭── ✦ **Preferences & Traits** ──╮\n` +
+      `**Likes** ﹕ Pastel pink, iced matcha latte, cute plushies, rainy days, lo-fi\n` +
+      `**Dislikes** ﹕ Loud noises, cold bitter coffee, toxicity, drama, bugs\n` +
+      `**Hobbies** ﹕ Cozy gaming, UI/UX design, illustration, web crafting\n` +
+      `**Theme Song** ﹕ [Cruel Summer — Taylor Swift](https://music.youtube.com/watch?v=ic8j13piAhQ)\n` +
+      `╰────────────────────────╯`
     )
     .setThumbnail(media.avatarURL)
     .setImage(media.bannerURL)
     .setFooter({
-      text: 'created with love by lilac. • lilacbyte.xyz',
+      text: 'Roleplay Character Card • lilacbyte.xyz',
       iconURL: media.avatarURL
     });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId('char_0')
-      .setLabel('Character Art 🌸')
+      .setCustomId('outfit_0')
+      .setLabel('Outfits & Gallery 🌸')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
-      .setLabel('Website 🌐')
+      .setLabel('Interactive Web Card 🌐')
       .setStyle(ButtonStyle.Link)
       .setURL('https://lilacbyte.xyz'),
     new ButtonBuilder()
-      .setLabel('Music 🎵')
+      .setLabel('Theme Music 🎵')
       .setStyle(ButtonStyle.Link)
       .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
   );
@@ -154,51 +172,51 @@ async function buildProfileResponse() {
   return { embeds: [embed], components: [row] };
 }
 
-// 2. Character Image Gallery (With clean arrows & direct back-to-profile)
-async function buildCharacterResponse(index: number) {
+// 2. Character Outfit Gallery Builder (With named outfits & clean arrows)
+async function buildOutfitResponse(index: number) {
   const media = await getLiveUserMedia();
-  const total = CHARACTER_IMAGES.length;
+  const total = CHARACTER_OUTFITS.length;
   const safeIndex = Math.max(0, Math.min(index, total - 1));
-  const imageUrl = CHARACTER_IMAGES[safeIndex];
+  const outfit = CHARACTER_OUTFITS[safeIndex];
 
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setTitle(`${media.globalName} — Character Gallery (${safeIndex + 1}/${total}) 🌸`)
+    .setTitle(`Lilac — Outfit ${safeIndex + 1}/${total} ﹕ ${outfit.name} 🌸`)
     .setURL('https://lilacbyte.xyz')
-    .setDescription(`> Full-body character art render • **Look ${safeIndex + 1} of ${total}**`)
+    .setDescription(`> *${outfit.desc}*`)
     .setThumbnail(media.avatarURL)
-    .setImage(imageUrl)
+    .setImage(outfit.url)
     .setFooter({
-      text: `Image ${safeIndex + 1} of ${total} • Hosted on lilacbyte.xyz CDN`,
+      text: `Look ${safeIndex + 1} of ${total} • Hosted on lilacbyte.xyz CDN`,
       iconURL: media.avatarURL
     });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId(`char_prev_${safeIndex - 1}`)
+      .setCustomId(`outfit_prev_${safeIndex - 1}`)
       .setLabel('⬅️ Previous')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(safeIndex === 0),
     new ButtonBuilder()
-      .setCustomId('char_counter')
+      .setCustomId('outfit_counter')
       .setLabel(`${safeIndex + 1} / ${total}`)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
     new ButtonBuilder()
-      .setCustomId(`char_next_${safeIndex + 1}`)
+      .setCustomId(`outfit_next_${safeIndex + 1}`)
       .setLabel('Next ➡️')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(safeIndex === total - 1),
     new ButtonBuilder()
       .setCustomId('back_profile')
-      .setLabel('Profile Card 🌸')
+      .setLabel('RP Card 🌸')
       .setStyle(ButtonStyle.Success)
   );
 
   return { embeds: [embed], components: [row] };
 }
 
-// 3. Ping Embed Generator (With Live PFP in top-right thumbnail)
+// 3. Ping Embed Generator
 async function buildPingResponse(gatewayPing: number, latency: number) {
   const media = await getLiveUserMedia();
 
@@ -211,6 +229,7 @@ async function buildPingResponse(gatewayPing: number, latency: number) {
       `• **Bot Latency** ﹕ \`${latency}ms\`\n` +
       `• **Gateway Ping** ﹕ \`${Math.round(gatewayPing)}ms\`\n` +
       `• **Status** ﹕ \`Operational 🟢\`\n` +
+      `• **Roleplay Card** ﹕ \`Active 🌸\`\n` +
       `• **CDN & Web** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
     )
     .setFooter({
@@ -221,7 +240,7 @@ async function buildPingResponse(gatewayPing: number, latency: number) {
   return { embeds: [embed] };
 }
 
-// Sync presence to website connector API
+// Sync with website
 async function syncWithWebsite() {
   try {
     const payload = {
@@ -260,8 +279,8 @@ async function autoRegisterCommands(clientId: string, token: string) {
       .toJSON();
 
   const commands = [
-    createSlash('profile', '🌸 View Lilac\'s official roleplay profile card & character gallery'),
-    createSlash('character', '🖼️ View Lilac\'s full-body character art gallery'),
+    createSlash('profile', '🌸 View Lilac\'s official roleplay character card'),
+    createSlash('outfits', '👗 View Lilac\'s full-body outfit gallery'),
     createSlash('ping', '🏓 Check bot latency and API health'),
     createSlash('music', '🎵 See the currently playing track on lilacbyte.xyz')
   ];
@@ -269,14 +288,14 @@ async function autoRegisterCommands(clientId: string, token: string) {
   try {
     const rest = new REST({ version: '10' }).setToken(token);
     await rest.put(Routes.applicationCommands(clientId), { body: commands });
-    console.log('⚡ Registered (/) commands.');
+    console.log('⚡ Registered (/) commands for Guilds & DMs.');
   } catch (err) {
     console.warn('⚠️ Command registration notice:', (err as Error).message);
   }
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Ready for Lilac (${AUTHORIZED_USER_ID}).`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Roleplay Character Engine Active.`);
 
   c.user.setPresence({
     activities: [
@@ -294,14 +313,12 @@ client.once(Events.ClientReady, async (c) => {
     autoRegisterCommands(c.user.id, token);
   }
 
-  // Pre-fetch live user media
   getLiveUserMedia();
-
   syncWithWebsite();
   setInterval(syncWithWebsite, 60000);
 });
 
-// Interaction Handler with Whitelist & Roleplay Cards
+// Interaction Handler with Whitelist
 client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.user.id !== AUTHORIZED_USER_ID) {
     if (interaction.isRepliable()) {
@@ -323,8 +340,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return cmd.reply(res);
     }
 
-    if (commandName === 'character') {
-      const res = await buildCharacterResponse(0);
+    if (commandName === 'outfits') {
+      const res = await buildOutfitResponse(0);
       return cmd.reply(res);
     }
 
@@ -339,13 +356,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const media = await getLiveUserMedia();
       const embed = new EmbedBuilder()
         .setColor(0xf472b6)
-        .setTitle('🎵 Currently Playing on lilacbyte.xyz')
+        .setTitle('🎵 Theme Music — Cruel Summer')
         .setDescription(
           `**Taylor Swift — Cruel Summer**\n` +
-          `*Continuous playlist streaming enabled with exact timestamp restoration.*\n\n` +
-          `• **Engine** ﹕ Client-Side YouTube Iframe\n` +
-          `• **Mode** ﹕ Seamless Playlist Queue\n` +
-          `• **Listen** ﹕ [Open Player](https://lilacbyte.xyz)`
+          `*Official character theme song playing on lilacbyte.xyz*\n\n` +
+          `• **Playback** ﹕ Seamless Playlist Queue\n` +
+          `• **Listen Live** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
         )
         .setThumbnail(media.avatarURL)
         .setImage(media.bannerURL)
@@ -353,7 +369,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setLabel('Open Music Player 🌸')
+          .setLabel('Open Web Player 🌸')
           .setStyle(ButtonStyle.Link)
           .setURL('https://lilacbyte.xyz'),
         new ButtonBuilder()
@@ -371,20 +387,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const btn = interaction as ButtonInteraction;
     const { customId } = btn;
 
-    if (customId === 'char_0') {
-      const res = await buildCharacterResponse(0);
+    if (customId === 'outfit_0') {
+      const res = await buildOutfitResponse(0);
       return btn.update(res);
     }
 
-    if (customId.startsWith('char_prev_')) {
-      const idx = parseInt(customId.replace('char_prev_', ''), 10);
-      const res = await buildCharacterResponse(isNaN(idx) ? 0 : idx);
+    if (customId.startsWith('outfit_prev_')) {
+      const idx = parseInt(customId.replace('outfit_prev_', ''), 10);
+      const res = await buildOutfitResponse(isNaN(idx) ? 0 : idx);
       return btn.update(res);
     }
 
-    if (customId.startsWith('char_next_')) {
-      const idx = parseInt(customId.replace('char_next_', ''), 10);
-      const res = await buildCharacterResponse(isNaN(idx) ? 0 : idx);
+    if (customId.startsWith('outfit_next_')) {
+      const idx = parseInt(customId.replace('outfit_next_', ''), 10);
+      const res = await buildOutfitResponse(isNaN(idx) ? 0 : idx);
       return btn.update(res);
     }
 
