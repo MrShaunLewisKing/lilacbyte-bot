@@ -118,7 +118,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card with ## Roleplaying
+// 1. Clean Profile Card with Working progress notice above banner
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -138,7 +138,8 @@ async function buildProfileResponse() {
       `## Roleplaying\n` +
       `- **Position** ﹕ Switch (Submissive Lean)\n` +
       `- **Kinks** ﹕ Rough, Breeding, Petplay + more\n` +
-      `- **Plots** ﹕ Flexible & open to ideas`
+      `- **Plots** ﹕ Flexible & open to ideas\n\n` +
+      `*Working progress... still updating...*`
     )
     .setImage(media.bannerURL)
     .setFooter({
@@ -266,7 +267,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Roleplaying header active.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Ready with progress notice.`);
 
   c.user.setPresence({
     activities: [],
