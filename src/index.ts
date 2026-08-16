@@ -100,7 +100,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card (Only Character button)
+// 1. Clean Profile Card with Roleplay Info
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -116,7 +116,10 @@ async function buildProfileResponse() {
       `• **Pronouns** ﹕ she/her\n` +
       `• **Nicknames** ﹕ Lilac, Lily, Lili\n\n` +
       `• **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
-      `• **Dislikes** ﹕ Loud noises, cold coffee, drama`
+      `• **Dislikes** ﹕ Loud noises, cold coffee, drama\n\n` +
+      `• **Position** ﹕ Switch (Submissive Lean)\n` +
+      `• **Kinks** ﹕ Rough-fucking, Breeding, Petplay, Praise, Biting + more\n` +
+      `• **Plots** ﹕ Prefers to be flexible and outside of plots`
     )
     .setImage(media.bannerURL)
     .setFooter({
