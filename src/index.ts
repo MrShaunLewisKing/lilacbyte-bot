@@ -3,7 +3,6 @@ import {
   Client,
   GatewayIntentBits,
   Partials,
-  ActivityType,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
@@ -119,7 +118,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card (No H3 margin gaps, consistent compact line height)
+// 1. Clean Profile Card
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -157,7 +156,7 @@ async function buildProfileResponse() {
   return { embeds: [embed], components: [row], files: [] };
 }
 
-// 2. Full-Res Character Gallery (Title includes: tap for full image)
+// 2. Full-Res Character Gallery
 function buildCharacterResponse(index: number) {
   const total = CHARACTER_OUTFITS.length;
   const safeIndex = Math.max(0, Math.min(index, total - 1));
@@ -219,8 +218,8 @@ async function syncWithWebsite() {
     const payload = {
       guildCount: client.guilds.cache.size,
       userCount: client.guilds.cache.reduce((acc, g) => acc + (g.memberCount || 1), 0),
-      currentActivity: '🌸 lilacbyte.xyz • Cruel Summer',
-      customStatus: 'lilacbyte.xyz connected'
+      currentActivity: null,
+      customStatus: null
     };
 
     await fetch(LILAC_API_URL, {
@@ -267,16 +266,11 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Clean Line Height Active.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Bot online with clean presence (no custom status text).`);
 
+  // Simple online status with zero custom activity/status text
   c.user.setPresence({
-    activities: [
-      {
-        name: '🌸 lilacbyte.xyz',
-        type: ActivityType.Custom,
-        state: '🌸 lilacbyte.xyz • Cruel Summer'
-      }
-    ],
+    activities: [],
     status: 'online'
   });
 
