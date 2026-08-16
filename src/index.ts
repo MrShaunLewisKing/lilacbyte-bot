@@ -119,7 +119,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card with Discord Markdown Formatting
+// 1. Clean Profile Card (No H3 margin gaps, consistent compact line height)
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -135,8 +135,8 @@ async function buildProfileResponse() {
       `- **Pronouns** ﹕ she/her\n` +
       `- **Nicknames** ﹕ Lilac, Lily, Lili\n` +
       `- **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
-      `- **Dislikes** ﹕ Loud noises, cold coffee, drama\n\n` +
-      `### Roleplaying\n` +
+      `- **Dislikes** ﹕ Loud noises, cold coffee, drama\n` +
+      `**Roleplaying**\n` +
       `- **Position** ﹕ Switch (Submissive Lean)\n` +
       `- **Kinks** ﹕ Rough, Breeding, Petplay + more\n` +
       `- **Plots** ﹕ Flexible & open to ideas`
@@ -267,7 +267,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Clean Discord Markdown Formatting Active.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Clean Line Height Active.`);
 
   c.user.setPresence({
     activities: [
