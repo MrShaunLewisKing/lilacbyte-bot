@@ -100,7 +100,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card (No flower in title, aligned tidy spacing)
+// 1. Clean Profile Card (Only Character button)
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -128,11 +128,7 @@ async function buildProfileResponse() {
     new ButtonBuilder()
       .setCustomId('char_0')
       .setLabel('Character 🌸')
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setLabel('Website 🌐')
-      .setStyle(ButtonStyle.Link)
-      .setURL('https://lilacbyte.xyz')
+      .setStyle(ButtonStyle.Primary)
   );
 
   return { embeds: [embed], components: [row], files: [] };
