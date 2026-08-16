@@ -1,3 +1,4 @@
+import path from 'path';
 import {
   Client,
   GatewayIntentBits,
@@ -15,21 +16,15 @@ import {
   InteractionContextType,
   ApplicationIntegrationType,
   ButtonInteraction,
-  ChatInputCommandInteraction
+  ChatInputCommandInteraction,
+  AttachmentBuilder
 } from 'discord.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const AUTHORIZED_USER_ID = '622858248587837481';
-
-// Hosted Character CDN Images on lilacbyte.xyz
-const CHARACTER_IMAGES = [
-  'https://lilacbyte.xyz/character/1.jpg',
-  'https://lilacbyte.xyz/character/2.jpg',
-  'https://lilacbyte.xyz/character/3.jpg',
-  'https://lilacbyte.xyz/character/4.jpg'
-];
+const TOTAL_CHARACTER_IMAGES = 4;
 
 const client = new Client({
   intents: [
@@ -87,6 +82,21 @@ async function getLiveUserMedia() {
     }
   } catch {}
 
+  try {
+    const res = await fetch(`https://japi.rest/discord/v1/user/${AUTHORIZED_USER_ID}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data) {
+        userMediaCache = {
+          avatarURL: json.data.avatarURL?.replace('size=128', 'size=512') || userMediaCache.avatarURL,
+          bannerURL: json.data.bannerURL?.replace('size=600', 'size=1024') || userMediaCache.bannerURL,
+          globalName: json.data.global_name || '♡₊˚ Lilac .ᐟ',
+          lastFetched: now
+        };
+      }
+    }
+  } catch {}
+
   return userMediaCache;
 }
 
@@ -125,19 +135,21 @@ async function buildProfileResponse() {
       .setURL('https://lilacbyte.xyz')
   );
 
-  return { embeds: [embed], components: [row] };
+  return { embeds: [embed], components: [row], files: [] };
 }
 
-// 2. Full-Resolution, Clean Character Gallery (No thumbnail clutter to prevent Discord downscaling)
+// 2. Ultra-High Resolution Character Gallery (Direct Attachment for lossless crystal-clear quality)
 function buildCharacterResponse(index: number) {
-  const total = CHARACTER_IMAGES.length;
-  const safeIndex = Math.max(0, Math.min(index, total - 1));
-  const imageUrl = CHARACTER_IMAGES[safeIndex];
+  const safeIndex = Math.max(0, Math.min(index, TOTAL_CHARACTER_IMAGES - 1));
+  const imageNumber = safeIndex + 1;
+  const fileName = `character_${imageNumber}.jpg`;
+  const filePath = path.resolve(process.cwd(), `assets/${fileName}`);
 
-  // Pure full-res image embed without thumbnail or description clutter
+  const attachment = new AttachmentBuilder(filePath, { name: fileName });
+
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setImage(imageUrl);
+    .setImage(`attachment://${fileName}`);
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -147,21 +159,21 @@ function buildCharacterResponse(index: number) {
       .setDisabled(safeIndex === 0),
     new ButtonBuilder()
       .setCustomId('char_counter')
-      .setLabel(`${safeIndex + 1} / ${total}`)
+      .setLabel(`${safeIndex + 1} / ${TOTAL_CHARACTER_IMAGES}`)
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(true),
     new ButtonBuilder()
       .setCustomId(`char_next_${safeIndex + 1}`)
       .setLabel('➡️')
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(safeIndex === total - 1),
+      .setDisabled(safeIndex === TOTAL_CHARACTER_IMAGES - 1),
     new ButtonBuilder()
       .setCustomId('back_profile')
       .setLabel('Profile 🌸')
       .setStyle(ButtonStyle.Primary)
   );
 
-  return { embeds: [embed], components: [row] };
+  return { embeds: [embed], components: [row], files: [attachment] };
 }
 
 // 3. Simple Ping Embed
@@ -235,7 +247,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Clean Profile & Gallery Ready.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Crystal-Clear Native Attachments Ready.`);
 
   c.user.setPresence({
     activities: [
@@ -299,17 +311,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const { customId } = btn;
 
     if (customId === 'char_0') {
-      return btn.update(buildCharacterResponse(0));
+      const res = buildCharacterResponse(0);
+      return btn.update(res);
     }
 
     if (customId.startsWith('char_prev_')) {
       const idx = parseInt(customId.replace('char_prev_', ''), 10);
-      return btn.update(buildCharacterResponse(isNaN(idx) ? 0 : idx));
+      const res = buildCharacterResponse(isNaN(idx) ? 0 : idx);
+      return btn.update(res);
     }
 
     if (customId.startsWith('char_next_')) {
       const idx = parseInt(customId.replace('char_next_', ''), 10);
-      return btn.update(buildCharacterResponse(isNaN(idx) ? 0 : idx));
+      const res = buildCharacterResponse(isNaN(idx) ? 0 : idx);
+      return btn.update(res);
     }
 
     if (customId === 'back_profile') {
