@@ -1,32 +1,31 @@
-import { REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { REST, Routes, SlashCommandBuilder, InteractionContextType, ApplicationIntegrationType } from 'discord.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const createSlash = (name: string, description: string) =>
+  new SlashCommandBuilder()
+    .setName(name)
+    .setDescription(description)
+    .setContexts([
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel
+    ])
+    .setIntegrationTypes([
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall
+    ])
+    .toJSON();
+
 const commands = [
-  new SlashCommandBuilder()
-    .setName('profile')
-    .setDescription('🌸 View Lilac\'s official Carrd profile & intro card'),
-
-  new SlashCommandBuilder()
-    .setName('card')
-    .setDescription('🌸 Display Lilac\'s interactive website card'),
-
-  new SlashCommandBuilder()
-    .setName('music')
-    .setDescription('🎵 See the currently playing track on lilacbyte.xyz'),
-
-  new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('🏓 Check bot latency and lilacbyte.xyz API health'),
-
-  new SlashCommandBuilder()
-    .setName('status')
-    .setDescription('✨ View live connection telemetry between Railway and lilacbyte.xyz')
-].map(command => command.toJSON());
+  createSlash('profile', 'View Lilac\'s profile card & character art'),
+  createSlash('character', 'View Lilac\'s character art gallery'),
+  createSlash('ping', 'Check bot latency')
+];
 
 const token = process.env.DISCORD_TOKEN;
-const clientId = process.env.CLIENT_ID || '1199007203768672297';
+const clientId = process.env.CLIENT_ID || '1538332097691910164';
 
 if (!token) {
   console.error('❌ DISCORD_TOKEN is missing in environment variables.');
@@ -37,7 +36,7 @@ const rest = new REST({ version: '10' }).setToken(token);
 
 (async () => {
   try {
-    console.log(`🌸 Refreshing ${commands.length} application (/) commands...`);
+    console.log(`🌸 Refreshing ${commands.length} application (/) commands for client ${clientId}...`);
 
     const data = await rest.put(
       Routes.applicationCommands(clientId),
