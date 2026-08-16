@@ -21,9 +21,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Whitelisted User ID (Only Lilac can interact)
 const AUTHORIZED_USER_ID = '622858248587837481';
-const LILAC_AVATAR_URL = 'https://cdn.discordapp.com/avatars/622858248587837481/a_ca1e23ad2e95a12269c6ba7d1000bb7d.png?size=512';
 
 // Hosted Character CDN Images on lilacbyte.xyz
 const CHARACTER_IMAGES = [
@@ -62,31 +60,86 @@ const client = new Client({
 const LILAC_API_URL = process.env.LILAC_API_URL || 'https://lilacbyte.xyz/api/bot';
 const LILAC_BOT_SECRET = process.env.LILAC_BOT_SECRET || '';
 
-// 1. Profile Embed Generator (With PFP in top-right thumbnail)
-function buildProfileResponse() {
+// In-memory cache for live user avatar and banner
+let userMediaCache = {
+  avatarURL: 'https://cdn.discordapp.com/avatars/622858248587837481/fe4a9783f89ee5f27539a78675f0bb2c.png?size=512',
+  bannerURL: 'https://cdn.discordapp.com/banners/622858248587837481/059d31c98c90366335465ee69b8d1b39.png?size=1024',
+  globalName: '♡₊˚ Lilac .ᐟ',
+  lastFetched: 0
+};
+
+async function getLiveUserMedia() {
+  const now = Date.now();
+  if (now - userMediaCache.lastFetched < 180000) {
+    return userMediaCache;
+  }
+
+  try {
+    const user = await client.users.fetch(AUTHORIZED_USER_ID, { force: true });
+    if (user) {
+      userMediaCache = {
+        avatarURL: user.displayAvatarURL({ size: 512, forceStatic: false }),
+        bannerURL: user.bannerURL({ size: 1024, forceStatic: false }) || userMediaCache.bannerURL,
+        globalName: user.globalName || user.username || '♡₊˚ Lilac .ᐟ',
+        lastFetched: now
+      };
+      return userMediaCache;
+    }
+  } catch {}
+
+  try {
+    const res = await fetch(`https://japi.rest/discord/v1/user/${AUTHORIZED_USER_ID}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data) {
+        userMediaCache = {
+          avatarURL: json.data.avatarURL?.replace('size=128', 'size=512') || userMediaCache.avatarURL,
+          bannerURL: json.data.bannerURL?.replace('size=600', 'size=1024') || userMediaCache.bannerURL,
+          globalName: json.data.global_name || '♡₊˚ Lilac .ᐟ',
+          lastFetched: now
+        };
+      }
+    }
+  } catch {}
+
+  return userMediaCache;
+}
+
+// 1. Tidy, Aesthetic Roleplay Profile Card
+async function buildProfileResponse() {
+  const media = await getLiveUserMedia();
+
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setTitle('♡₊˚ Lilac .ᐟ 🌸')
+    .setTitle(`${media.globalName} 🌸`)
     .setURL('https://lilacbyte.xyz')
-    .setDescription('Personal intro card & digital space.')
-    .setThumbnail(LILAC_AVATAR_URL)
-    .addFields(
-      { name: '🎂 Age', value: '22', inline: true },
-      { name: '📍 From', value: 'United Kingdom', inline: true },
-      { name: '🌸 Gender', value: 'Female (Femboy)', inline: true },
-      { name: '🏷️ Pronouns', value: 'she/her', inline: true },
-      { name: '✨ Nicknames', value: 'Lilac, Lily, Lili', inline: true },
-      { name: '🎵 Now Playing', value: 'Cruel Summer by Taylor Swift', inline: false }
+    .setDescription(
+      `*“Simplicity is the keynote of all true elegance.”*\n\n` +
+      `> **✦ Identity & Info**\n` +
+      `• **Age** ﹕ \`22\`\n` +
+      `• **From** ﹕ \`United Kingdom\`\n` +
+      `• **Gender** ﹕ \`Female (Femboy)\`\n` +
+      `• **Pronouns** ﹕ \`she / her\`\n` +
+      `• **Aliases** ﹕ \`Lilac\`, \`Lily\`, \`Lili\`\n\n` +
+      `> **✦ Preferences**\n` +
+      `• **Likes** ﹕ Pastel Aesthetics, Iced Matcha, Cute Plushies, Rainy Days\n` +
+      `• **Dislikes** ﹕ Loud Noises, Cold Coffee, Toxicity, Slow Internet\n` +
+      `• **Hobbies** ﹕ Cozy Gaming, Digital Art & UI, Lo-Fi Beats, Web Crafting\n\n` +
+      `> **✦ Media & Links**\n` +
+      `• **Now Playing** ﹕ [Cruel Summer — Taylor Swift](https://music.youtube.com/watch?v=ic8j13piAhQ)\n` +
+      `• **Interactive Card** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
     )
+    .setThumbnail(media.avatarURL)
+    .setImage(media.bannerURL)
     .setFooter({
       text: 'created with love by lilac. • lilacbyte.xyz',
-      iconURL: LILAC_AVATAR_URL
+      iconURL: media.avatarURL
     });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('char_0')
-      .setLabel('Character 🌸')
+      .setLabel('Character Art 🌸')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setLabel('Website 🌐')
@@ -101,21 +154,23 @@ function buildProfileResponse() {
   return { embeds: [embed], components: [row] };
 }
 
-// 2. Character Image Gallery Builder (With prev/next arrows)
-function buildCharacterResponse(index: number) {
+// 2. Character Image Gallery (With clean arrows & direct back-to-profile)
+async function buildCharacterResponse(index: number) {
+  const media = await getLiveUserMedia();
   const total = CHARACTER_IMAGES.length;
   const safeIndex = Math.max(0, Math.min(index, total - 1));
   const imageUrl = CHARACTER_IMAGES[safeIndex];
 
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setTitle(`Lilac — Character Art (${safeIndex + 1}/${total}) 🌸`)
+    .setTitle(`${media.globalName} — Character Gallery (${safeIndex + 1}/${total}) 🌸`)
     .setURL('https://lilacbyte.xyz')
-    .setThumbnail(LILAC_AVATAR_URL)
+    .setDescription(`> Full-body character art render • **Look ${safeIndex + 1} of ${total}**`)
+    .setThumbnail(media.avatarURL)
     .setImage(imageUrl)
     .setFooter({
       text: `Image ${safeIndex + 1} of ${total} • Hosted on lilacbyte.xyz CDN`,
-      iconURL: LILAC_AVATAR_URL
+      iconURL: media.avatarURL
     });
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -136,34 +191,37 @@ function buildCharacterResponse(index: number) {
       .setDisabled(safeIndex === total - 1),
     new ButtonBuilder()
       .setCustomId('back_profile')
-      .setLabel('Profile 🌸')
+      .setLabel('Profile Card 🌸')
       .setStyle(ButtonStyle.Success)
   );
 
   return { embeds: [embed], components: [row] };
 }
 
-// 3. Ping Embed Generator (With PFP in top-right thumbnail)
-function buildPingResponse(gatewayPing: number, latency: number) {
+// 3. Ping Embed Generator (With Live PFP in top-right thumbnail)
+async function buildPingResponse(gatewayPing: number, latency: number) {
+  const media = await getLiveUserMedia();
+
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
     .setTitle('🏓 Pong!')
-    .setThumbnail(LILAC_AVATAR_URL)
-    .addFields(
-      { name: '⚡ Bot Latency', value: `\`${latency}ms\``, inline: true },
-      { name: '🌐 Gateway Ping', value: `\`${Math.round(gatewayPing)}ms\``, inline: true },
-      { name: '🌸 Status', value: 'Operational', inline: true },
-      { name: '🔗 Website', value: '[lilacbyte.xyz](https://lilacbyte.xyz)', inline: false }
+    .setThumbnail(media.avatarURL)
+    .setDescription(
+      `> **✦ Bot Telemetry**\n` +
+      `• **Bot Latency** ﹕ \`${latency}ms\`\n` +
+      `• **Gateway Ping** ﹕ \`${Math.round(gatewayPing)}ms\`\n` +
+      `• **Status** ﹕ \`Operational 🟢\`\n` +
+      `• **CDN & Web** ﹕ [lilacbyte.xyz](https://lilacbyte.xyz)`
     )
     .setFooter({
       text: 'lilacbyte.xyz bot',
-      iconURL: LILAC_AVATAR_URL
+      iconURL: media.avatarURL
     });
 
   return { embeds: [embed] };
 }
 
-// Fast non-blocking website sync
+// Sync presence to website connector API
 async function syncWithWebsite() {
   try {
     const payload = {
@@ -184,7 +242,7 @@ async function syncWithWebsite() {
   } catch {}
 }
 
-// Auto Slash Command Registration
+// Auto Register Slash Commands
 async function autoRegisterCommands(clientId: string, token: string) {
   const createSlash = (name: string, description: string) =>
     new SlashCommandBuilder()
@@ -202,7 +260,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
       .toJSON();
 
   const commands = [
-    createSlash('profile', '🌸 View Lilac\'s official profile & character art'),
+    createSlash('profile', '🌸 View Lilac\'s official roleplay profile card & character gallery'),
     createSlash('character', '🖼️ View Lilac\'s full-body character art gallery'),
     createSlash('ping', '🏓 Check bot latency and API health'),
     createSlash('music', '🎵 See the currently playing track on lilacbyte.xyz')
@@ -236,13 +294,15 @@ client.once(Events.ClientReady, async (c) => {
     autoRegisterCommands(c.user.id, token);
   }
 
+  // Pre-fetch live user media
+  getLiveUserMedia();
+
   syncWithWebsite();
   setInterval(syncWithWebsite, 60000);
 });
 
-// Interaction Handler with User Whitelist Check
+// Interaction Handler with Whitelist & Roleplay Cards
 client.on(Events.InteractionCreate, async (interaction) => {
-  // Check authorization: only user 622858248587837481 can interact
   if (interaction.user.id !== AUTHORIZED_USER_ID) {
     if (interaction.isRepliable()) {
       return interaction.reply({
@@ -253,66 +313,84 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  // Handle Slash Commands
+  // Slash Commands
   if (interaction.isChatInputCommand()) {
     const cmd = interaction as ChatInputCommandInteraction;
     const { commandName } = cmd;
 
     if (commandName === 'profile') {
-      return cmd.reply(buildProfileResponse());
+      const res = await buildProfileResponse();
+      return cmd.reply(res);
     }
 
     if (commandName === 'character') {
-      return cmd.reply(buildCharacterResponse(0));
+      const res = await buildCharacterResponse(0);
+      return cmd.reply(res);
     }
 
     if (commandName === 'ping') {
       const sent = await cmd.reply({ content: '🏓 Pinging...', fetchReply: true });
       const latency = sent.createdTimestamp - cmd.createdTimestamp;
-      return cmd.editReply(buildPingResponse(client.ws.ping, latency));
+      const res = await buildPingResponse(client.ws.ping, latency);
+      return cmd.editReply(res);
     }
 
     if (commandName === 'music') {
+      const media = await getLiveUserMedia();
       const embed = new EmbedBuilder()
         .setColor(0xf472b6)
         .setTitle('🎵 Currently Playing on lilacbyte.xyz')
-        .setDescription('**Taylor Swift — Cruel Summer**\n*Continuous playlist streaming enabled with exact timestamp restoration.*')
-        .setThumbnail(LILAC_AVATAR_URL)
-        .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
-        .setFooter({ text: 'lilacbyte.xyz' });
+        .setDescription(
+          `**Taylor Swift — Cruel Summer**\n` +
+          `*Continuous playlist streaming enabled with exact timestamp restoration.*\n\n` +
+          `• **Engine** ﹕ Client-Side YouTube Iframe\n` +
+          `• **Mode** ﹕ Seamless Playlist Queue\n` +
+          `• **Listen** ﹕ [Open Player](https://lilacbyte.xyz)`
+        )
+        .setThumbnail(media.avatarURL)
+        .setImage(media.bannerURL)
+        .setFooter({ text: 'lilacbyte.xyz', iconURL: media.avatarURL });
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setLabel('Open Music Player 🌸')
           .setStyle(ButtonStyle.Link)
-          .setURL('https://lilacbyte.xyz')
+          .setURL('https://lilacbyte.xyz'),
+        new ButtonBuilder()
+          .setLabel('YouTube Music 🎵')
+          .setStyle(ButtonStyle.Link)
+          .setURL('https://music.youtube.com/watch?v=ic8j13piAhQ')
       );
 
       return cmd.reply({ embeds: [embed], components: [row] });
     }
   }
 
-  // Handle Button Clicks (Character Gallery & Back to Profile)
+  // Button Interactions
   if (interaction.isButton()) {
     const btn = interaction as ButtonInteraction;
     const { customId } = btn;
 
     if (customId === 'char_0') {
-      return btn.update(buildCharacterResponse(0));
+      const res = await buildCharacterResponse(0);
+      return btn.update(res);
     }
 
     if (customId.startsWith('char_prev_')) {
       const idx = parseInt(customId.replace('char_prev_', ''), 10);
-      return btn.update(buildCharacterResponse(isNaN(idx) ? 0 : idx));
+      const res = await buildCharacterResponse(isNaN(idx) ? 0 : idx);
+      return btn.update(res);
     }
 
     if (customId.startsWith('char_next_')) {
       const idx = parseInt(customId.replace('char_next_', ''), 10);
-      return btn.update(buildCharacterResponse(isNaN(idx) ? 0 : idx));
+      const res = await buildCharacterResponse(isNaN(idx) ? 0 : idx);
+      return btn.update(res);
     }
 
     if (customId === 'back_profile') {
-      return btn.update(buildProfileResponse());
+      const res = await buildProfileResponse();
+      return btn.update(res);
     }
   }
 });
@@ -328,7 +406,8 @@ client.on(Events.MessageCreate, async (message) => {
       });
     }
 
-    return message.reply(buildProfileResponse());
+    const res = await buildProfileResponse();
+    return message.reply(res);
   }
 });
 
