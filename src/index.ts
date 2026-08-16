@@ -119,7 +119,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card
+// 1. Clean Compact Profile Card (No extra gaps, seamless spacing)
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -133,12 +133,12 @@ async function buildProfileResponse() {
       `• **From** ﹕ United Kingdom\n` +
       `• **Gender** ﹕ Female (Femboy)\n` +
       `• **Pronouns** ﹕ she/her\n` +
-      `• **Nicknames** ﹕ Lilac, Lily, Lili\n\n` +
+      `• **Nicknames** ﹕ Lilac, Lily, Lili\n` +
       `• **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
-      `• **Dislikes** ﹕ Loud noises, cold coffee, drama\n\n` +
+      `• **Dislikes** ﹕ Loud noises, cold coffee, drama\n` +
       `• **Position** ﹕ Switch (Submissive Lean)\n` +
-      `• **Kinks** ﹕ Rough-fucking, Breeding, Petplay, Praise, Biting + more\n` +
-      `• **Plots** ﹕ Prefers to be flexible and outside of plots`
+      `• **Kinks** ﹕ Rough-fucking, Breeding, Petplay + more\n` +
+      `• **Plots** ﹕ Prefers to be flexible & outside plots`
     )
     .setImage(media.bannerURL)
     .setFooter({
@@ -156,7 +156,7 @@ async function buildProfileResponse() {
   return { embeds: [embed], components: [row], files: [] };
 }
 
-// 2. Character Gallery with Individual Style Titles (Tracksuit default)
+// 2. Full-Res Native Attachment Character Gallery
 function buildCharacterResponse(index: number) {
   const total = CHARACTER_OUTFITS.length;
   const safeIndex = Math.max(0, Math.min(index, total - 1));
@@ -266,7 +266,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Character Images Ready.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Clean Profile Ready.`);
 
   c.user.setPresence({
     activities: [
