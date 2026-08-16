@@ -119,7 +119,7 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Clean Profile Card
+// 1. Clean Profile Card with Roleplaying Subcategory
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
@@ -135,7 +135,8 @@ async function buildProfileResponse() {
       `• **Pronouns** ﹕ she/her\n` +
       `• **Nicknames** ﹕ Lilac, Lily, Lili\n` +
       `• **Likes** ﹕ Pastels, matcha, plushies, lo-fi\n` +
-      `• **Dislikes** ﹕ Loud noises, cold coffee, drama\n` +
+      `• **Dislikes** ﹕ Loud noises, cold coffee, drama\n\n` +
+      `**Roleplaying**\n` +
       `• **Position** ﹕ Switch (Submissive Lean)\n` +
       `• **Kinks** ﹕ Rough-fucking, Breeding, Petplay + more\n` +
       `• **Plots** ﹕ Prefers to be flexible & outside plots`
@@ -266,7 +267,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Open interactions active for all users.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Roleplaying Subcategory Active.`);
 
   c.user.setPresence({
     activities: [
@@ -289,7 +290,7 @@ client.once(Events.ClientReady, async (c) => {
   setInterval(syncWithWebsite, 60000);
 });
 
-// Interaction Handler (Open for Lilac and other users to interact with buttons & commands)
+// Interaction Handler
 client.on(Events.InteractionCreate, async (interaction) => {
   // Slash Commands
   if (interaction.isChatInputCommand()) {
@@ -314,7 +315,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
   }
 
-  // Button Interactions (Character Images & Arrows)
+  // Button Interactions
   if (interaction.isButton()) {
     const btn = interaction as ButtonInteraction;
     const { customId } = btn;
@@ -343,7 +344,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// DM Auto-Responder (Open for everyone in DMs)
+// DM Auto-Responder
 client.on(Events.MessageCreate, async (message) => {
   if (message.author.bot) return;
 
