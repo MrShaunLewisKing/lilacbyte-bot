@@ -100,13 +100,13 @@ async function getLiveUserMedia() {
   return userMediaCache;
 }
 
-// 1. Simple, Clean, Neat Profile Card
+// 1. Clean Profile Card (No flower in title, aligned tidy spacing)
 async function buildProfileResponse() {
   const media = await getLiveUserMedia();
 
   const embed = new EmbedBuilder()
     .setColor(0xf472b6)
-    .setTitle(`${media.globalName} 🌸`)
+    .setTitle(media.globalName)
     .setURL('https://lilacbyte.xyz')
     .setThumbnail(media.avatarURL)
     .setDescription(
@@ -138,7 +138,7 @@ async function buildProfileResponse() {
   return { embeds: [embed], components: [row], files: [] };
 }
 
-// 2. Ultra-High Resolution Character Gallery (Direct Attachment for lossless crystal-clear quality)
+// 2. Full-Res Native Attachment Character Gallery
 function buildCharacterResponse(index: number) {
   const safeIndex = Math.max(0, Math.min(index, TOTAL_CHARACTER_IMAGES - 1));
   const imageNumber = safeIndex + 1;
@@ -232,9 +232,9 @@ async function autoRegisterCommands(clientId: string, token: string) {
       .toJSON();
 
   const commands = [
-    createSlash('profile', '🌸 View Lilac\'s profile card & character art'),
-    createSlash('character', '🖼️ View Lilac\'s character art gallery'),
-    createSlash('ping', '🏓 Check bot latency')
+    createSlash('profile', 'View Lilac\'s profile card & character art'),
+    createSlash('character', 'View Lilac\'s character art gallery'),
+    createSlash('ping', 'Check bot latency')
   ];
 
   try {
@@ -247,7 +247,7 @@ async function autoRegisterCommands(clientId: string, token: string) {
 }
 
 client.once(Events.ClientReady, async (c) => {
-  console.log(`🌸 Logged in as ${c.user.tag}! Crystal-Clear Native Attachments Ready.`);
+  console.log(`🌸 Logged in as ${c.user.tag}! Clean Profile Ready.`);
 
   c.user.setPresence({
     activities: [
